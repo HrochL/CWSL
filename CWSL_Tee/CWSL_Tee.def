@@ -1,0 +1,8 @@
+LIBRARY	"CWSL_Tee"
+EXPORTS
+	GetSdrInfo
+	StartRx
+	StopRx
+	SetRxFrequency
+	SetCtrlBits
+	ReadPort
