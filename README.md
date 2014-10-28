@@ -1,4 +1,4 @@
-![](./CWSL.svg)
+![](./CWSL.png)
 
 CWSL is a set of utilities to allow further use of data from SDR receiver connected to the [Skimmer server](http://www.dxatlas.com/SkimServer/). 
 This is done through the special dll CWSL_Tee, whitch acts as driver for another SDR receiver. 
