@@ -225,7 +225,7 @@ BOOL wavOpen(void)
   sprintf(str, "%d", Hdr24.Auxi.CenterFreq);
   ListAdd("QRG ", str);
   ListAdd("ISFT", "CWSL_File");
-  ListAdd("IWEB", "http://ol5q.nagano.cz/soft.html");
+  ListAdd("IWEB", "https://github.com/HrochL/CWSL");
   ListAdd("CHAN", "I/Q");
   
   // use Hdr24

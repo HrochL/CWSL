@@ -1,4 +1,4 @@
-![](./CWSL.png)
+![](./CWSL.svg)
 
 CWSL is a set of utilities to allow further use of data from SDR receiver connected to the [Skimmer server](http://www.dxatlas.com/SkimServer/). 
 This is done through the special dll CWSL_Tee, whitch acts as driver for another SDR receiver. 
@@ -16,7 +16,7 @@ All other applications running on the same computer can use it from these buffer
 
 1.  Unpack file [IPP51.zip (23 MB)](./bin/IPP51.zip) into separated directory and run setup.exe in it. This will install Intel Integrated Primitives library redistributables.
 2.  Run [vcredist_x86.exe (2.6 MB)](./bin/vcredist_x86.exe), this will install right version of C runtime libraries.
-3.  Unpack [CWSL_1_8.zip](./bin/CWSL_1_8.zip) into Skimmer server directory. Typically **c:\Program Files\Afreet\SkimSrv**.
+3.  Copy [CWSL_Tee.dll](./bin/CWSL_Tee.dll) and [CWSL_Tee.cfg](./bin/CWSL_Tee.cfg) into Skimmer server directory. Typically **c:\Program Files\Afreet\SkimSrv**.
 4.  If you want use other SDR than QS1R, change change name of underlying library in file CWSL_Tee.cfg.
 5.  Start Skimmer server and select "CWSL_Tee on ..." from combo on tab "Skimmer".
 6.  Now you can copy CWSL_File.exe into desired directory and run it with band number (or some frequency from the desired band) on the command line. It will start recording of selected band into wav file. Every minute it print '.' like sign, that it working. Every hour it create new file. You can change this length to half or quarter of hour by command line switches. When you run programm without any parameters, it will print a little help about it. Recorded files you may use in Winrad (or one of its successors like [HDSDR](http://www.hdsdr.de/)), [SpectraVue](http://www.moetronix.com/spectravue.htm) or [CW Skimmer](http://www.dxatlas.com/CwSkimmer). Recording can be stopped by pressing any key or Ctrl+C.
@@ -35,5 +35,9 @@ Specifies the number of bits to rotate the original sample to the right, before 
 The appropriate value of this factor must be determined experimentally for each band separately. 
 We use the HDSDR with Extio_CWSL.dll for it.
 
-The latest version CWSL_File \(1.7\) allows to use the original dynamics and avoid experimenting with this factor. 
+From version 1.7 CWSL_File  allows to use the original dynamics and avoid experimenting with this factor. 
 So if you do not mind a slightly larger files size, you can specify Scaling\_factor value -2 for all bands.
+
+**Changes in version 2.0**
+
+CWSL_Tee now supports multiple instances of Skimmer Server on the same SDR hardware. The first running instance creates a shared memory and write IQ data into it (like in version 1.X). The folowing instances open this memory and read IQ data from it.

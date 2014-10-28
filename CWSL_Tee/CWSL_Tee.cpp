@@ -10,6 +10,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Global variables
 
+// Master mode flag
+bool  gMaster;
+
 // Name of lower library
 char nLib[_MAX_PATH];
 
@@ -45,7 +48,7 @@ int gSampleRate = 0;
 // Length of block for one call of IQProc
 int gBlockInSamples = 0;
 
-// Center frequencies for receivers
+// Center frequencies for receivers (Master mode)
 int gL0[MAX_RX_COUNT];
 
 // Number of current receivers
@@ -56,6 +59,20 @@ CSharedMemory gSM[MAX_RX_COUNT];
 
 // Length of shared memories in blocks
 int gSMLen = 64;
+
+// Shared memories headers (Slave mode)
+SM_HDR *gHdr[MAX_RX_COUNT];
+
+// Data buffer (Slave mode)
+CmplxA gData[MAX_RX_COUNT];
+
+// Handle & ID of worker thread (Slave mode)
+DWORD  idWrk = 0;
+HANDLE hWrk = NULL;
+
+// Stop flag (Slave mode)
+volatile bool StopFlag = false;
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Printing to debug log
@@ -86,6 +103,27 @@ void Print(const char *Fmt, ...)
   fputs(Line, fp);
   fclose(fp);
  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Send error
+void Error(const char *Fmt, ...)
+{va_list Args;
+ char Line[0x1000];
+ 
+ // for safety
+ if (gSet.pErrorProc == NULL) return;
+ 
+ // format text
+ va_start(Args, Fmt);
+ vsprintf(Line, (const char *)Fmt, Args);
+ va_end(Args);   
+ 
+ // save it into log
+ Print("Error: %s", Line);
+
+ // send it
+ (*gSet.pErrorProc)(gSet.THandle, Line);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -142,6 +180,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 	case DLL_PROCESS_ATTACH:
         Print("DLL_PROCESS_ATTACH");
         
+        // initialize Slave mode memory pointers
+        for (int i = 0; i < MAX_RX_COUNT; i++) {gHdr[i] = NULL; gData[i] = NULL;}
+        
         // load configruation from file
         LoadConfig();
         
@@ -170,9 +211,34 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+// Detect working mode
+void DetectMode(void)
+{CSharedMemory SM;
+
+ // try to open first shared memory buffer
+ if (SM.Open("CWSL0Band"))
+ {// success -> shared memory exist, so we run in Slave mode
+  gMaster = false;
+  SM.Close();
+  Print("Slave mode detected");
+ }
+  else
+ {// can't open -> shared memory still don't exist, so we run in Master mode
+  gMaster = true;
+  Print("Master mode detected");
+ } 
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // Free alocated
 void Free(void)
 {int i;
+
+ // free Salve mode data buffers
+ for (i = 0; i < MAX_RX_COUNT; i++)
+ {if (gData[i] != NULL) free(gData[i]);
+  gData[i] = NULL;
+ }
  
  // close shared memories
  for (i = 0; i < MAX_RX_COUNT; i++) gSM[i].Close();
@@ -188,6 +254,9 @@ BOOL Alloc(void)
  // for safety ...
  Free();
 
+ // detect working mode 
+ DetectMode();
+
  // decode sample rate
  if (gSet.RateID == RATE_48KHZ) gSampleRate = 48000;
   else
@@ -196,28 +265,63 @@ BOOL Alloc(void)
  if (gSet.RateID == RATE_192KHZ) gSampleRate = 192000;
   else
  {// unknown sample rate
-  if (gSet.pErrorProc != NULL) (*gSet.pErrorProc)(gSet.THandle, "Unknown sample rate");
+  Error("Unknown sample rate (RateID=%d)", gSet.RateID);
   return(FALSE);
  } 
 
  // compute length of block in samples
  gBlockInSamples = (int)((float)gSampleRate / (float)BLOCKS_PER_SEC);
  
- // open shared memories
+ // create/open shared memories
  for (i = 0; i < gRxCnt; i++)
  {// create name of memory
   sprintf(Name, "CWSL%dBand", i);
-  if (!gSM[i].Create(Name, gSMLen*gBlockInSamples*sizeof(Cmplx), TRUE))
-  {// can't
-   if (gSet.pErrorProc != NULL) (*gSet.pErrorProc)(gSet.THandle, "Can't create shared memory buffer");
-   return(FALSE);
-  }
+ 
+  // according to mode ...
+  if (gMaster)
+  {// Master -> try to create shared memory
+   if (!gSM[i].Create(Name, gSMLen*gBlockInSamples*sizeof(Cmplx), TRUE))
+   {// can't
+    Error("Can't create shared memory buffer %d", i);
+    return(FALSE);
+   }
   
-  // fill header
-  pHdr = gSM[i].GetHeader();
-  pHdr->SampleRate = gSampleRate;
-  pHdr->BlockInSamples = gBlockInSamples;
-  pHdr->L0 = 0;
+   // fill header
+   pHdr = gSM[i].GetHeader();
+   pHdr->SampleRate = gSampleRate;
+   pHdr->BlockInSamples = gBlockInSamples;
+   pHdr->L0 = 0;
+  }
+   else
+  {// Slave -> try to open shared memory
+   if (!gSM[i].Open(Name))
+   {// can't
+    Error("Can't open shared memory buffer %d", i);
+    return(FALSE);
+   }
+  
+   // check sample rate
+   gHdr[i] = gSM[i].GetHeader();
+   if (gHdr[i]->SampleRate != gSampleRate)
+   {// can't
+    Error("CWSL has different sample rate (%d/%d)", gHdr[i]->SampleRate, gSampleRate);
+    return FALSE;
+   }   
+  } 
+ }
+ 
+ // in Slave mode ...
+ if (!gMaster)
+ {// ... allocate data buffers
+  for (i = 0; i < MAX_RX_COUNT; i++)
+  {// try to allocate memory 
+   gData[i] = (CmplxA)calloc(gBlockInSamples, sizeof(Cmplx));
+   if (gData[i] == NULL)
+   {// can't
+    Error("Can't allocate working memory");
+    return FALSE;
+   }
+  } 
  }
   
  // success
@@ -225,7 +329,7 @@ BOOL Alloc(void)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-// Our callback procedure
+// Our callback procedure (Master mode)
 extern "C" void __stdcall MyIQProc(int RxHandle, CmplxAA Data)
 {int i;
  
@@ -237,6 +341,50 @@ extern "C" void __stdcall MyIQProc(int RxHandle, CmplxAA Data)
   
  // call lower callback function
  (*gSet.pIQProc)(RxHandle, Data);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Worker thread function (Slave mode)
+DWORD WINAPI Worker(LPVOID lpParameter)
+{bool incomplete = false;
+ int i;
+ 
+ // for sure ...
+ if (gRxCnt < 1) return(0);
+ 
+ // wait for new data on highest receiver
+ gSM[gRxCnt - 1].WaitForNewData(100);
+
+ // clear all rx buffers
+ for (i = 0; i < gRxCnt; i++) gSM[i].ClearBytesToRead();
+ 
+ // main loop
+ while (!StopFlag)
+ {// reset incomplete flag
+  incomplete = false;
+ 
+  // wait for new data on highest receiver
+  gSM[gRxCnt - 1].WaitForNewData(100);
+
+  // for every receiver ...
+  for (i = 0; i < gRxCnt; i++)
+  {// try to read data
+   if (!gSM[i].Read((PBYTE)gData[i], gBlockInSamples*sizeof(Cmplx)))
+   {// no data 
+    incomplete = true; 
+    break;
+   }
+  }   
+ 
+  // have we all of data ?
+  if (StopFlag || incomplete) {Print("Incomplete data !!!"); continue;}
+   
+  // send data to skimmer
+  (*gSet.pIQProc)(gSet.THandle, gData);
+ }
+  
+ // that's all
+ return(0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -304,14 +452,27 @@ extern "C" CWSL_TEE_API void __stdcall StartRx(PSdrSettings pSettings)
   return;
  }
 
- // redirect IQ callback routine
- pSettings->pIQProc = MyIQProc;
+ // according to mode ...
+ if (gMaster)
+ {// Master -> redirect IQ callback routine
+  pSettings->pIQProc = MyIQProc;
 
- // call lower function
- (*pStartRx)(pSettings);
+  // call lower function
+  (*pStartRx)(pSettings);
 
- // bring back original callback routine
- pSettings->pIQProc = gSet.pIQProc;
+  // bring back original callback routine
+  pSettings->pIQProc = gSet.pIQProc;
+ }
+  else
+ {// Slave -> start worker thread
+  StopFlag = false;
+  hWrk = CreateThread(NULL, 0, Worker, NULL, 0, &idWrk);
+  if (hWrk == NULL)
+  {// can't
+   Error("Can't start worker thread");
+   return;
+  } 
+ } 
  
  Print("StartRx stopping");
 }
@@ -322,8 +483,25 @@ extern "C" CWSL_TEE_API void __stdcall StopRx(void)
 {
  Print("StopRx starting");
 
- // call lower function
- (*pStopRx)();
+ // according to mode ...
+ if (gMaster)
+ {// Master -> call lower function
+  (*pStopRx)();
+ }
+  else
+ {// Slave -> was worker thread started ?
+  if (hWrk != NULL)
+  {// set stop flag
+   StopFlag = true;
+  
+   // wait for thread
+   WaitForSingleObject(hWrk, 1000);
+
+   // close thread handle 
+   CloseHandle(hWrk);
+   hWrk = NULL;
+  }
+ } 
 
  // free all
  Free();
@@ -338,18 +516,29 @@ extern "C" CWSL_TEE_API void __stdcall SetRxFrequency(int Frequency, int Receive
 
  Print("SetRxFrequency starting with Frequency=%d, Receiver=%d", Frequency, Receiver);
 
- // save it
- if ((Receiver > -1) && (Receiver < gRxCnt)) 
- {// into our variable
-  gL0[Receiver] = Frequency;
+ // according to mode ...
+ if (gMaster)
+ {// Master -> save it
+  if ((Receiver > -1) && (Receiver < gRxCnt)) 
+  {// into our variable
+   gL0[Receiver] = Frequency;
   
-  // into shared variable
-  pHdr = gSM[Receiver].GetHeader();
-  if (pHdr != NULL) pHdr->L0 = Frequency;
- }
+   // into shared variable
+   pHdr = gSM[Receiver].GetHeader();
+   if (pHdr != NULL) pHdr->L0 = Frequency;
+  }
  
- // call lower function
- (*pSetRxFrequency)(Frequency, Receiver);
+  // call lower function
+  (*pSetRxFrequency)(Frequency, Receiver);
+ }
+  else
+ {// Slave -> check receiver number (without errors ...)
+  if ((Receiver >= gRxCnt) || (gHdr[Receiver] == NULL)) return;
+
+  // check it
+  if (Frequency != gHdr[Receiver]->L0) 
+   Error("Can't change L0 from %d to %d for %d-th receiver", gHdr[Receiver]->L0, Frequency, Receiver);
+ }
 
  Print("SetRxFrequency stopping");
 }
@@ -360,8 +549,11 @@ extern "C" CWSL_TEE_API void __stdcall SetCtrlBits(unsigned char Bits)
 {
  Print("SetCtrlBits starting with Bits=%d", Bits);
 
- // call lower function
- (*pSetCtrlBits)(Bits);
+ // in Master mode ...
+ if (gMaster)
+ {// ... call lower function
+  (*pSetCtrlBits)(Bits);
+ }
 
  Print("SetCtrlBits stopping");
 }
@@ -369,12 +561,15 @@ extern "C" CWSL_TEE_API void __stdcall SetCtrlBits(unsigned char Bits)
 ///////////////////////////////////////////////////////////////////////////////
 //
 extern "C" CWSL_TEE_API int __stdcall ReadPort(int PortNumber)
-{int Res;
+{int Res = 0;
 
  Print("ReadPort starting with PortNumber=%d", PortNumber);
 
- // call lower function
- Res = (*pReadPort)(PortNumber);
+ // in Master mode ...
+ if (gMaster)
+ {// ... call lower function
+  Res = (*pReadPort)(PortNumber);
+ }
 
  Print("ReadPort stopping");
 
