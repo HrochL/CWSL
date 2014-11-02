@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CWSL_Wave", "CWSL_Wave\CWSL
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Extio_CWSL", "ExtIO_CWSL\Extio_CWSL.vcproj", "{28FA684A-8330-482B-A0E5-3C07AB496E67}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CWSL_Net", "CWSL_Net\CWSL_Net.vcproj", "{C86EAD9E-8E97-4416-A9EF-A05EC01ADEFD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -31,6 +33,10 @@ Global
 		{28FA684A-8330-482B-A0E5-3C07AB496E67}.Debug|Win32.Build.0 = Debug|Win32
 		{28FA684A-8330-482B-A0E5-3C07AB496E67}.Release|Win32.ActiveCfg = Release|Win32
 		{28FA684A-8330-482B-A0E5-3C07AB496E67}.Release|Win32.Build.0 = Release|Win32
+		{C86EAD9E-8E97-4416-A9EF-A05EC01ADEFD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C86EAD9E-8E97-4416-A9EF-A05EC01ADEFD}.Debug|Win32.Build.0 = Debug|Win32
+		{C86EAD9E-8E97-4416-A9EF-A05EC01ADEFD}.Release|Win32.ActiveCfg = Release|Win32
+		{C86EAD9E-8E97-4416-A9EF-A05EC01ADEFD}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
