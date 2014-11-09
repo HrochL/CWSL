@@ -1,6 +1,7 @@
 #include <winsock2.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "Client.h"
 
 #define LISTEN_PORT     11000
 #define BUFFER_LEN      4096
@@ -16,7 +17,7 @@ typedef struct {
  int idx;
  
  // client address
- char addr[64];
+ struct sockaddr_in addr;
  
  // client socket 
  SOCKET sock;
@@ -35,11 +36,12 @@ SOCKET sListen = INVALID_SOCKET;
 DWORD WINAPI clientThread(LPVOID lpParam)
 {CLIENT *pc = Clns + (int)lpParam;
  SOCKET sock = pc->sock;
- char szBuff[BUFFER_LEN], *rpl = szBuff;
+ Client cln(&(pc->addr));
+ char szBuff[BUFFER_LEN], *rpl;
  int ret;
 
  // print info
- printf("%02d new client from %s\n", pc->idx, pc->addr);
+ printf("%02d new client from %s:%d\n", pc->idx, inet_ntoa(pc->addr.sin_addr), ntohs(pc->addr.sin_port));
 
  // main loop
  while(1)
@@ -48,8 +50,7 @@ DWORD WINAPI clientThread(LPVOID lpParam)
   if (ret == 0) break;       // Graceful close
    else 
   if (ret == SOCKET_ERROR)
-  {
-   printf("%02d recv() failed: %d\n", pc->idx, WSAGetLastError());
+  {printf("%02d recv() failed: %d\n", pc->idx, WSAGetLastError());
    break;
   }
  
@@ -58,21 +59,23 @@ DWORD WINAPI clientThread(LPVOID lpParam)
   printf("%02d RECV: '%s'\n", pc->idx, szBuff);
 
   // parse command
-  // !!!!! 
+  rpl = cln.ParseCommand(szBuff);
 
   // send reply
   send(sock, rpl, strlen(rpl), 0);
-  printf("%02d SEND: '%s'\n", pc->idx, szBuff);
+  printf("%02d SEND: '%s'\n", pc->idx, rpl);
+
+  // is it request to quit?
+  if (strcmp(rpl, cs_quit) == 0) break;
  }
 
  // print info
- printf("%02d connection with client %s closed\n", pc->idx, pc->addr);
+ printf("%02d connection with client %s:%d closed\n", pc->idx, inet_ntoa(pc->addr.sin_addr), ntohs(pc->addr.sin_port));
 
  // close socket
  closesocket(sock);
  
  // free slot
- pc->addr[0] = '\0';
  pc->sock = INVALID_SOCKET;
 
  // that's all
@@ -88,7 +91,7 @@ void clientInit(void)
  for (i = 0; i < MAX_CLIENTS; i++)
  {// initialize
   Clns[i].idx = i;
-  Clns[i].addr[0] = '\0';
+  memset(&(Clns[i].addr), 0, sizeof(Clns[i].addr));
   Clns[i].sock = INVALID_SOCKET;
  }
 }
@@ -105,7 +108,7 @@ void clientFree(void)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Create new client
-bool clientNew(char *Addr, SOCKET Sock)
+bool clientNew(struct sockaddr_in *Addr, SOCKET Sock)
 {int i;
  HANDLE h;
  DWORD id;
@@ -116,12 +119,12 @@ bool clientNew(char *Addr, SOCKET Sock)
  if (i >= MAX_CLIENTS) return false; 
     
  // fill it
- strcpy(Clns[i].addr, Addr);
+ memcpy(&(Clns[i].addr), Addr, sizeof(struct sockaddr_in));
  Clns[i].sock = Sock;
  
  // create client thread
  h = CreateThread(NULL, 0, clientThread, (LPVOID)i, 0, &id);
- if (h == NULL) {closesocket(Sock); Clns[i].addr[0] = '\0'; Clns[i].sock = INVALID_SOCKET; return false;}
+ if (h == NULL) {closesocket(Sock); Clns[i].sock = INVALID_SOCKET; return false;}
 
  // close handle to thread
  CloseHandle(h);
@@ -162,7 +165,6 @@ int main(int argc, char **argv)
 {WSADATA wsd;
  SOCKET sClient;
  struct sockaddr_in local, client;
- char addr[64];
  int iAddrSize;
 
  // print info
@@ -207,11 +209,8 @@ int main(int argc, char **argv)
   if (sClient == INVALID_SOCKET)
   {printf("accept() failed: %d\n", WSAGetLastError()); break;}
     
-  // create client address
-  sprintf(addr, "%s:%d", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
-  
   // create new client thread
-  if (!clientNew(addr, sClient)) printf("clientNew() failed: %d\n", GetLastError());
+  if (!clientNew(&client, sClient)) printf("clientNew() failed: %d\n", GetLastError());
  }
  
  // print info
