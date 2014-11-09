@@ -65,7 +65,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,0,0,1
+ FILEVERSION 2,0,0,2
  PRODUCTVERSION 2,0,0,1
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
@@ -82,7 +82,7 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "CWSL_Tee Dynamic Link Library"
-            VALUE "FileVersion", "2, 0, 0, 1"
+            VALUE "FileVersion", "2, 0, 0, 2"
             VALUE "InternalName", "CWSL_Tee"
             VALUE "LegalCopyright", "Copyright (C) 2011-2014"
             VALUE "OriginalFilename", "CWSL_Tee.dll"

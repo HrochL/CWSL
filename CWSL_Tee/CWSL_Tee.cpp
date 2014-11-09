@@ -516,28 +516,41 @@ extern "C" CWSL_TEE_API void __stdcall SetRxFrequency(int Frequency, int Receive
 
  Print("SetRxFrequency starting with Frequency=%d, Receiver=%d", Frequency, Receiver);
 
+ // check receiver number
+ if ((Receiver < 0) || (Receiver >= gRxCnt))
+ {// bad receiver number
+  Error("SetRxFrequency: Unknown receiver with number %d", Receiver);
+  return;
+ }
+ 
+ // have this receiver created/opened shared memory ?
+ if (!gSM[Receiver].IsOpen())
+ {// no -> we can't set or check the frequency
+  Error("SetRxFrequency: Receiver with number %d does not have %s shared memory", 
+        Receiver, gMaster ? "created" : "opened"
+       );
+  return;
+ }
+ 
  // according to mode ...
  if (gMaster)
- {// Master -> save it
-  if ((Receiver > -1) && (Receiver < gRxCnt)) 
-  {// into our variable
-   gL0[Receiver] = Frequency;
+ {// Master -> save it into our variable ...
+  gL0[Receiver] = Frequency;
   
-   // into shared variable
-   pHdr = gSM[Receiver].GetHeader();
-   if (pHdr != NULL) pHdr->L0 = Frequency;
-  }
+  // ... and into shared variable
+  pHdr = gSM[Receiver].GetHeader();
+  if (pHdr != NULL) pHdr->L0 = Frequency;
  
   // call lower function
   (*pSetRxFrequency)(Frequency, Receiver);
  }
   else
- {// Slave -> check receiver number (without errors ...)
-  if ((Receiver >= gRxCnt) || (gHdr[Receiver] == NULL)) return;
-
-  // check it
+ {// Slave -> only check the frequency
   if (Frequency != gHdr[Receiver]->L0) 
-   Error("Can't change L0 from %d to %d for %d-th receiver", gHdr[Receiver]->L0, Frequency, Receiver);
+  {// bad frequency
+   Error("SetRxFrequency: can't change L0 from %d to %d for %d-th receiver", gHdr[Receiver]->L0, Frequency, Receiver);
+   return;
+  }
  }
 
  Print("SetRxFrequency stopping");
