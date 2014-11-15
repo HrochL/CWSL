@@ -5,6 +5,23 @@
 #include "../Utils/SharedMemory.h"
 
 ///////////////////////////////////////////////////////////////////////////////
+
+// Buffer size in samples
+#define BUFFER_SIZE 1024
+
+// Data size in bytes
+#define DATA_SIZE    500
+
+// IQ packet struct
+#pragma pack(push, 1) 
+typedef struct {
+    unsigned long long sequence;
+    unsigned short offset;
+    unsigned short length;
+    unsigned char data[DATA_SIZE];
+} iqPacket;
+#pragma pack(pop)
+
 // String constants
 static char cs_sep[] = " \r\n"; // command argument separators
 static char cs_ok[] = "OK";
@@ -36,21 +53,42 @@ class Client {
      // Shared memory
      CSharedMemory  m_SM;
      
-     // Local copy of shared memeory header
+     // Local copy of shared memory header
      SM_HDR  m_Hdr;
  
+     // Socket for sendind iq data
+     volatile SOCKET  m_iqSocket;
+     
+     // Handle to IQ worker thread
+     volatile HANDLE  m_hThrd;
+     
+     // Sequence number counter
+     long long  m_Seq;
+
 
  public:
 
      // Construction
-     Client(struct sockaddr_in *Addr) {memcpy(&m_Addr, Addr, sizeof(m_Addr));}
+     Client(struct sockaddr_in *Addr) 
+     {memcpy(&m_Addr, Addr, sizeof(m_Addr));
+      m_rx = 0;
+      memset(&m_Hdr, 0, sizeof(m_Hdr));
+      m_iqSocket = INVALID_SOCKET;
+      m_hThrd = NULL;
+      m_Seq = 0;
+     }
 
      // Destruction
-     ~Client() {iqStop(); m_SM.Close();}
+     ~Client() 
+     {iqStop(); 
+      m_SM.Close();
+     }
 
      // Parse client command
      char *ParseCommand(char *cmd);
      
+ protected:
+
      // Command services
      char *CmdAttach(char **arg);
      char *CmdDetach(char **arg);
@@ -60,7 +98,11 @@ class Client {
      
      // IQ worker thread functions
      BOOL iqStart();
-     BOOL isIqStarted();
+     BOOL isIqStarted() {return (m_hThrd != NULL);}
      void iqStop();
+     
+     // IQ worker function
+     void iqWorker(void);
+     friend DWORD WINAPI Client_iqWorker(LPVOID lpParam);
 
 };

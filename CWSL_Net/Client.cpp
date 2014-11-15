@@ -181,19 +181,109 @@ char *Client::CmdStop(char **arg)
 ///////////////////////////////////////////////////////////////////////////////
 // Start iq worker thread
 BOOL Client::iqStart(void)
-{
- return FALSE;
-}
+{DWORD ID;
 
-///////////////////////////////////////////////////////////////////////////////
-// Is iq worker thread started?
-BOOL Client::isIqStarted(void)
-{
- return FALSE;
+ // for sure
+ iqStop();
+ 
+ // create sender socket
+ m_iqSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+ if (m_iqSocket == INVALID_SOCKET) return FALSE;
+ 
+ // start worker thread
+ m_hThrd = CreateThread(NULL, 0, Client_iqWorker, this, 0, &ID);
+ if (m_hThrd == NULL) {closesocket(m_iqSocket); m_iqSocket = INVALID_SOCKET; return FALSE;}
+ 
+ // close handle to the thread
+ CloseHandle(m_hThrd);
+ 
+ // we have success
+ return TRUE;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // Stop iq worker thread
 void Client::iqStop(void)
 {
+ // close the iq socket
+ if (m_iqSocket != INVALID_SOCKET) closesocket(m_iqSocket);
+ m_iqSocket = INVALID_SOCKET;
+ 
+ // if worker running ...
+ if (m_hThrd != NULL)
+ {// ... wait for it - but not for long
+  ::WaitForSingleObject(m_hThrd, 100);
+ }
+ m_hThrd = NULL;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Real worker function
+DWORD WINAPI Client_iqWorker(LPVOID lpParam)
+{Client *pInst = (Client *)lpParam;
+ 
+ // run worker function
+ if (pInst != NULL) pInst->iqWorker();
+ 
+ // clean handle to this thread
+ pInst->m_hThrd = NULL; 
+ 
+ // that's all folks
+ return 0;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// IQ worker function
+void Client::iqWorker(void)
+{float iBuf[BUFFER_SIZE*2], oBuf[BUFFER_SIZE*2];
+ float *pi, *po;
+ int i;
+ iqPacket pkt;
+ unsigned short offset;
+ 
+ // clear old data
+ m_SM.ClearBytesToRead();
+ 
+ // main loop
+ while (m_iqSocket != INVALID_SOCKET)
+ {// wait for new data
+  m_SM.WaitForNewData(100);
+  
+  // can we still run ?
+  if (m_iqSocket == INVALID_SOCKET) break;
+  
+  // read block of data
+  if (!m_SM.Read((PBYTE)iBuf, sizeof(iBuf))) continue;
+ 
+  // reconfigure data - q samples first
+  for (i = 0, pi = iBuf, po = oBuf; i < BUFFER_SIZE; i++)
+  {// copy samples to the right places
+   po[BUFFER_SIZE] = *(pi++);
+   po[          0] = *(pi++);
+   po++;
+  }
+ 
+  // send data 
+  offset = 0;
+  while(offset < sizeof(oBuf))
+  {// fill packet header
+   pkt.sequence = m_Seq;
+   pkt.offset = offset;
+   pkt.length = sizeof(oBuf) - offset;
+   if (pkt.length > DATA_SIZE) pkt.length = DATA_SIZE; // trim to max length
+
+   // copy data 
+   memcpy (pkt.data, ((char *)oBuf)+offset, pkt.length);
+   
+   // send it
+   if (m_iqSocket == INVALID_SOCKET) break;
+   sendto(m_iqSocket, (char *)&pkt, sizeof(pkt), 0, (struct sockaddr*)&m_Addr, sizeof(m_Addr));  
+   
+   // update offset
+   offset += pkt.length;
+  }
+  
+  // increment sequence number
+  m_Seq++;
+ }
 }
