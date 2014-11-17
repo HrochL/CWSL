@@ -104,6 +104,9 @@ char *Client::CmdFrequency(char **arg)
  if (arg[1] == NULL) return cs_inv_cmd;
  f = atol(arg[1]);
  
+ // we have no way to set the frequency ... but we don't tell it 
+ return cs_ok;
+ 
  // check it
  if (f == m_Hdr.L0) return cs_ok;
  
