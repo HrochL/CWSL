@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <math.h>
 #include "Client.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -35,9 +36,9 @@ char *Client::ParseCommand(char *cmd)
   else
  if (_stricmp(t[0], "quit") == 0) return cs_quit;
   else
- if (_stricmp(t[0], "hardware?") == 0) return cs_hw;
+ if (_stricmp(t[0], "hardware?") == 0) return cs_inv_cmd;  // return cs_hw;
   else
- if (_stricmp(t[0], "getserial?") == 0) return cs_serial;
+ if (_stricmp(t[0], "getserial?") == 0) return cs_inv_cmd;  // return cs_serial;
    
  // unsupported command
  return cs_notimp_cmd;
@@ -238,7 +239,8 @@ DWORD WINAPI Client_iqWorker(LPVOID lpParam)
 ///////////////////////////////////////////////////////////////////////////////
 // IQ worker function
 void Client::iqWorker(void)
-{float iBuf[BUFFER_SIZE*2], oBuf[BUFFER_SIZE*2];
+{static const float norm = (float)(1.0 / pow(2.0, 31.0));
+ float iBuf[BUFFER_SIZE*2], oBuf[BUFFER_SIZE*2];
  float *pi, *po;
  int i;
  iqPacket pkt;
@@ -261,8 +263,8 @@ void Client::iqWorker(void)
   // reconfigure data - q samples first
   for (i = 0, pi = iBuf, po = oBuf; i < BUFFER_SIZE; i++)
   {// copy samples to the right places
-   po[BUFFER_SIZE] = *(pi++);
-   po[          0] = *(pi++);
+   po[BUFFER_SIZE] = *(pi++) * norm;
+   po[          0] = *(pi++) * norm;
    po++;
   }
  
