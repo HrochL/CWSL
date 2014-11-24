@@ -27,7 +27,6 @@ static char cs_sep[] = " \r\n"; // command argument separators
 static char cs_ok[] = "OK";
 static char cs_quit[] = "Client requested to quit ... bye !";
 static char cs_hw[] = "OK CWSL";
-static char cs_serial[] = "OK N/A";
 static char cs_inv_cmd[] = "Error: Invalid Command";
 static char cs_notimp_cmd[] = "Error: Not Implemented Command";
 static char cs_attached[] = "Error: Client is already attached to receiver";
@@ -91,6 +90,7 @@ class Client {
 
      // Command services
      char *CmdAttach(char **arg);
+     char *CmdLO(char **arg);
      char *CmdDetach(char **arg);
      char *CmdFrequency(char **arg);
      char *CmdStart(char **arg);

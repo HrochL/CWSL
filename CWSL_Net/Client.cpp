@@ -38,7 +38,7 @@ char *Client::ParseCommand(char *cmd)
   else
  if (_stricmp(t[0], "hardware?") == 0) return cs_inv_cmd;  // return cs_hw;
   else
- if (_stricmp(t[0], "getserial?") == 0) return cs_inv_cmd;  // return cs_serial;
+ if (_stricmp(t[0], "lo?") == 0) return CmdLO(t);
    
  // unsupported command
  return cs_notimp_cmd;
@@ -67,6 +67,27 @@ char *Client::CmdAttach(char **arg)
  
  // format response and return it
  sprintf(ret, "%s %d", cs_ok, m_Hdr.SampleRate);
+ return ret;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Service for command "lo"
+char *Client::CmdLO(char **arg)
+{static char ret[128];
+ int rx;
+
+ // check current state
+ if (!m_SM.IsOpen()) return cs_detached;
+
+ // get receiver number
+ if (arg[1] == NULL) return cs_inv_cmd;
+ rx = atoi(arg[1]);
+ 
+ // check receiver number
+ if (rx != m_rx) return cs_other_rx;
+
+ // format response and return it
+ sprintf(ret, "%s %d", cs_ok, m_Hdr.L0);
  return ret;
 }
 

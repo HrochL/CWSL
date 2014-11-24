@@ -6,11 +6,12 @@ It is inserted between the real driver of SDR receiver and Skimmer server.
 Data from the SDR receiver going through this library, which is storing it in circular buffers in shared memory of the computer. 
 All other applications running on the same computer can use it from these buffers.
 
-**Currently there are ready three such applications:**
+**Currently there are ready four such applications:**
 
 *   **CWSL_File** for storing data into Winrad-like wav files for later use
 *   **Extio_CWSL** for use it in real time by Winrad.
 *   **CWSL_Wave** for sending it into sound card - typically into [Virtual Audio Cable](http://software.muzychenko.net/eng/vac.htm) for using this IQ data into another SDR software
+*   **CWSL_Net** as CWSL CLI based IQ server for the [ghpsdr3-alex](http://napan.ca/ghpsdr3/index.php/Main_Page) project
 
 **Installation procedure is follows:**
 
