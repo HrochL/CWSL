@@ -45,4 +45,4 @@ CWSL_Tee now supports multiple instances of Skimmer Server on the same SDR hardw
 
 **Collaboration with WebSDR**
 
-Thanks to extension described [here](http://www.dl1glh.de/cwsl_websdr.html) IQ data from CWSL now can be consumed by popular (WebSDR)[http://websdr.org/] On the Linux side, the data is send to the ALSA software framework. In my opinion, then they should also be used with other Linux SDR programs. Thanks Hardy!
+Thanks to extension described [here](http://www.dl1glh.de/cwsl_websdr.html) the IQ data from CWSL now can be consumed by popular [WebSDR](http://websdr.org/) On the Linux side, the data is send to the ALSA software framework. In my opinion, then they should also be used with other Linux SDR programs. Thanks Hardy!
