@@ -42,3 +42,7 @@ So if you do not mind a slightly larger files size, you can specify Scaling\_fac
 **Changes in version 2.0**
 
 CWSL_Tee now supports multiple instances of Skimmer Server on the same SDR hardware. The first running instance creates a shared memory and write IQ data into it (like in version 1.X). The folowing instances open this memory and read IQ data from it.
+
+**Collaboration with WebSDR**
+
+Thanks to extension described [here](http://www.dl1glh.de/cwsl_websdr.html) IQ data from CWSL now can be consumed by popular (WebSDR)[http://websdr.org/] On the Linux side, the data is send to the ALSA software framework. In my opinion, then they should also be used with other Linux SDR programs. Thanks Hardy!
