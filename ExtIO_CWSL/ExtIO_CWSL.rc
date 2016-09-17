@@ -106,7 +106,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,1,0,2
+ FILEVERSION 1,1,0,3
  PRODUCTVERSION 2,0,0,1
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
@@ -123,9 +123,9 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "ExtIO_CWSL Dynamic Link Library"
-            VALUE "FileVersion", "1, 1, 0, 2"
+            VALUE "FileVersion", "1, 1, 0, 3"
             VALUE "InternalName", "ExtIO_CWSL"
-            VALUE "LegalCopyright", "Copyright (C) 2011"
+            VALUE "LegalCopyright", "Copyright (C) 2011-2016"
             VALUE "OriginalFilename", "ExtIO_CWSL.dll"
             VALUE "ProductName", "ExtIO_CWSL Dynamic Link Library"
             VALUE "ProductVersion", "2, 0, 0, 1"

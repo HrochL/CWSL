@@ -285,6 +285,20 @@ DWORD WINAPI Worker(LPVOID lpParameter)
 
   // write it to WinRad
   if (PCB != NULL) (*PCB)(len, 0, 0, sData);
+  
+  // check for changes in band parameters
+  if (memcmp(hCWSL + cCWSL, mCWSL.GetHeader(), sizeof(SM_HDR)) != 0)
+  {// something changed ... reload it
+   GetCWSLInfo();
+  
+   // inform winrad about our new LO
+   if (PCB != NULL)
+   {
+    (*PCB)(-1, 103, 0, NULL);
+    (*PCB)(-1, 101, 0, NULL);
+    (*PCB)(-1, 102, 0, NULL);
+   }
+  }
  } 
  
  // that's all
