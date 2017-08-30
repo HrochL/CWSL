@@ -15,8 +15,8 @@ All other applications running on the same computer can use it from these buffer
 
 **Installation procedure is follows:**
 
-1.  Unpack file [IPP51.zip (23 MB)](./bin/IPP51.zip) into separated directory and run setup.exe in it. This will install Intel Integrated Primitives library redistributables.
-2.  Run [vcredist_x86.exe (2.6 MB)](./bin/vcredist_x86.exe), this will install right version of C runtime libraries.
+1.  Unpack file [IPP70.zip (98 MB)](./bin/IPP70.zip) into directory in the system path (for example c:\windows\system32). This will install Intel Integrated Primitives library redistributables.
+2.  Run [vcredist_x86.exe (14 MB)](./bin/vcredist_x86.exe), this will install right version of C runtime libraries.
 3.  Copy [CWSL_Tee.dll](./bin/CWSL_Tee.dll) and [CWSL_Tee.cfg](./bin/CWSL_Tee.cfg) into Skimmer server directory. Typically **c:\Program Files\Afreet\SkimSrv**.
 4.  If you want use other SDR than QS1R, change change name of underlying library in file CWSL_Tee.cfg.
 5.  Start Skimmer server and select "CWSL_Tee on ..." from combo on tab "Skimmer".
