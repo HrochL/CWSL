@@ -55,7 +55,7 @@ class CSharedMemory {
   BOOL Create(LPCTSTR Name, DWORD Length, BOOL WriteAccess = FALSE);
 
   // pripoj se na usek sdilene pameti
-  BOOL Open(LPCTSTR Name, BOOL WriteAccess = FALSE);
+  BOOL Open(LPCTSTR Name, BOOL WriteAccess = FALSE, char *ErrorInfo = NULL);
 
   // jsme pripojeni na usek sdilene pameti ?
   BOOL IsOpen(void) {return (m_MapAddress != NULL);}

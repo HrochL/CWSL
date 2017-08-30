@@ -214,9 +214,10 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 // Detect working mode
 void DetectMode(void)
 {CSharedMemory SM;
+ char strErr[4096];
 
  // try to open first shared memory buffer
- if (SM.Open("CWSL0Band"))
+ if (SM.Open("CWSL0Band", FALSE, strErr))
  {// success -> shared memory exist, so we run in Slave mode
   gMaster = false;
   SM.Close();
@@ -225,7 +226,7 @@ void DetectMode(void)
   else
  {// can't open -> shared memory still don't exist, so we run in Master mode
   gMaster = true;
-  Print("Master mode detected");
+  Print("Master mode detected (%s)", strErr);
  } 
 }
 

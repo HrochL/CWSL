@@ -98,20 +98,32 @@ BOOL CSharedMemory::Create(LPCTSTR Name, DWORD Length, BOOL WriteAccess)
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 // pripoj se na usek sdilene pameti
-BOOL CSharedMemory::Open(LPCTSTR Name, BOOL WriteAccess)
+BOOL CSharedMemory::Open(LPCTSTR Name, BOOL WriteAccess, char *ErrorInfo)
 {char eName[MAX_PATH + 1];
 
- // pokud je jiz vytvoreno/namapovano vrat FALSE
- if (m_MapAddress != NULL) return(FALSE);
+ // pro jistotu ...
+ if (ErrorInfo != NULL) *ErrorInfo = '\0';
+ 
+ // pokud je jiz vytvoreno/namapovano ...
+ if (m_MapAddress != NULL) 
+ {// ... vrat FALSE
+  if (ErrorInfo != NULL) sprintf(ErrorInfo, "m_MapAddress != NULL");
+  return(FALSE);
+ }
 
  // pokus se pripojit na file-mapping objekt
  m_MapFile = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, Name);
- if (m_MapFile == NULL) return(FALSE);
+ if (m_MapFile == NULL) 
+ {// nepovedlo se
+  if (ErrorInfo != NULL) sprintf(ErrorInfo, "OpenFileMapping %d", GetLastError());
+  return(FALSE);
+ }
 
  // namapuj ho do pameti
  m_MapAddress = MapViewOfFile(m_MapFile, WriteAccess ? FILE_MAP_WRITE : FILE_MAP_READ, 0, 0, 0);
  if (m_MapAddress == NULL)
  {// nepovedlo se
+  if (ErrorInfo != NULL) sprintf(ErrorInfo, "MapViewOfFile %d", GetLastError());
   CloseHandle(m_MapFile);
   m_MapFile = NULL;
   return(FALSE);
@@ -122,7 +134,7 @@ BOOL CSharedMemory::Open(LPCTSTR Name, BOOL WriteAccess)
  m_Event = OpenEvent(EVENT_ALL_ACCESS,FALSE,eName); 
  if (m_Event == NULL)
  {// nepovedlo se 
-  DWORD Err = GetLastError();
+  if (ErrorInfo != NULL) sprintf(ErrorInfo, "OpenEvent %d", GetLastError());
   UnmapViewOfFile(m_MapAddress); m_MapAddress = NULL;
   CloseHandle(m_MapFile);        m_MapFile    = NULL;
   return(FALSE);
