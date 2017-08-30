@@ -5,3 +5,5 @@
 *.user
 *.aps
 *.db
+*.opendb
+ipch
