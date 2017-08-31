@@ -54,6 +54,9 @@ int gL0[MAX_RX_COUNT];
 // Number of current receivers
 int gRxCnt = 0;
 
+// Prefix and suffix for the shared memories names
+char gPreSM[128], gPostSM[128];
+
 // Shared memories for teeing data
 CSharedMemory gSM[MAX_RX_COUNT];
 
@@ -175,11 +178,28 @@ BOOL APIENTRY DllMain( HMODULE hModule,
                        LPVOID lpReserved
 					 )
 {
+ char fileName[_MAX_PATH + 1];
+ char *pFN, *pc;
+
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
         Print("DLL_PROCESS_ATTACH");
         
+        // create the prefix and suffix for the shared memories names
+        strcpy(gPreSM, "CWSL");
+        strcpy(gPostSM, "Band");
+        ::GetModuleFileName(hModule, fileName, _MAX_PATH);
+        #define BASE_FNAME "CWSL_Tee"
+        pFN = strstr(fileName, BASE_FNAME);
+        if (pFN != NULL)
+        {pFN += strlen(BASE_FNAME);
+         for (pc = pFN; (*pc != '\0') && (*pc != '.'); pc++);
+         *pc = '\0';
+         strcat(gPostSM, pFN);
+        }
+        Print("Shared memories names template is %s#%s", gPreSM, gPostSM);
+
         // initialize Slave mode memory pointers
         for (int i = 0; i < MAX_RX_COUNT; i++) {gHdr[i] = NULL; gData[i] = NULL;}
         
@@ -214,10 +234,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 // Detect working mode
 void DetectMode(void)
 {CSharedMemory SM;
- char strErr[4096];
+ char smName[128], strErr[4096];
 
  // try to open first shared memory buffer
- if (SM.Open("CWSL0Band", FALSE, strErr))
+ sprintf(smName, "%s%d%s", gPreSM, 0, gPostSM);
+ if (SM.Open(smName, FALSE, strErr))
  {// success -> shared memory exist, so we run in Slave mode
   gMaster = false;
   SM.Close();
@@ -276,7 +297,7 @@ BOOL Alloc(void)
  // create/open shared memories
  for (i = 0; i < gRxCnt; i++)
  {// create name of memory
-  sprintf(Name, "CWSL%dBand", i);
+  sprintf(Name, "%s%d%s", gPreSM, i, gPostSM);
  
   // according to mode ...
   if (gMaster)

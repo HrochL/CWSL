@@ -10,6 +10,9 @@
 // Maximum of CWSL bands
 #define MAX_CWSL   32
 
+// Prefix and suffix for the shared memories names
+char gPreSM[128], gPostSM[128];
+
 ///////////////////////////////////////////////////////////////////////////////
 // Find the right band
 int FindBand(int in)
@@ -27,7 +30,7 @@ int FindBand(int in)
  // try to find right band - for all possible bands ...
  for (i = 0; i < MAX_CWSL; i++)
  {// create name of shared memory
-  sprintf(Name, "CWSL%dBand", i);
+  sprintf(Name, "%s%d%s", gPreSM, i, gPostSM);
 
   // try to open shared memory
   if (SM.Open(Name))
@@ -61,6 +64,22 @@ void main(int argc, char **argv)
  int SR, BIS, SF = 16;
  int nMem = 0;
  int nWO = 0;
+ char fileName[_MAX_PATH + 1];
+ char *pFN, *pc;
+
+ // create the prefix and suffix for the shared memories names
+ strcpy(gPreSM, "CWSL");
+ strcpy(gPostSM, "Band");
+ ::GetModuleFileName(NULL, fileName, _MAX_PATH);
+#define BASE_FNAME "CWSL_Wave"
+ pFN = strstr(fileName, BASE_FNAME);
+ if (pFN != NULL)
+ {
+  pFN += strlen(BASE_FNAME);
+  for (pc = pFN; (*pc != '\0') && (*pc != '.'); pc++);
+  *pc = '\0';
+  strcat(gPostSM, pFN);
+ }
 
  // check number of input parameters
  if (argc < 3)
@@ -100,7 +119,7 @@ void main(int argc, char **argv)
  nMem = FindBand(nMem);
 
  // create name of shared memory
- sprintf(mName, "CWSL%dBand", nMem);
+ sprintf(mName, "%s%d%s", gPreSM, nMem, gPostSM);
 
  // try to open shared memory
  if (!SM.Open(mName))

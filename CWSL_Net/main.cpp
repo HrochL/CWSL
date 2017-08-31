@@ -10,6 +10,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Global types & variables
 
+// Prefix and suffix for the shared memories names
+char gPreSM[128], gPostSM[128];
+
 // Data type to describe one client
 typedef struct {
 
@@ -166,9 +169,25 @@ int main(int argc, char **argv)
  SOCKET sClient;
  struct sockaddr_in local, client;
  int iAddrSize;
+ char fileName[_MAX_PATH + 1];
+ char *pFN, *pc;
+
+ // create the prefix and suffix for the shared memories names
+ strcpy(gPreSM, "CWSL");
+ strcpy(gPostSM, "Band");
+ ::GetModuleFileName(NULL, fileName, _MAX_PATH);
+ #define BASE_FNAME "CWSL_Net"
+ pFN = strstr(fileName, BASE_FNAME);
+ if (pFN != NULL)
+ {
+  pFN += strlen(BASE_FNAME);
+  for (pc = pFN; (*pc != '\0') && (*pc != '.'); pc++);
+  *pc = '\0';
+  strcat(gPostSM, pFN);
+ }
 
  // print info
- printf("Starting ...\n");
+ printf("Starting (%s#%s) ...\n", gPreSM, gPostSM);
 
  // initialize slots
  clientInit();

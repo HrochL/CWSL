@@ -35,6 +35,9 @@ volatile bool  StopFlag = false;
 // Handle to GUI dialog box
 HWND hDlg = NULL;
 
+// Prefix and suffix for the shared memories names
+char gPreSM[128], gPostSM[128];
+
 // Headers from CWSL bands
 #define MAX_CWSL   32
 SM_HDR hCWSL[MAX_CWSL];
@@ -67,7 +70,7 @@ void GetCWSLInfo(void)
  nCWSL = 0;
  for (i = 0; i < MAX_CWSL; i++)
  {// create name of shared memory
-  sprintf(Name, "CWSL%dBand", i);
+  sprintf(Name, "%s%d%s", gPreSM, i, gPostSM);
 
   // try to open shared memory
   if (SM.Open(Name))
@@ -100,7 +103,7 @@ BOOL CWSLOpen(void)
  if ((cCWSL < 0) || (cCWSL >= nCWSL) || (nCWSL > MAX_CWSL)) return(FALSE);
 
  // create name of shared memory
- sprintf(Name, "CWSL%dBand", cCWSL);
+ sprintf(Name, "%s%d%s", gPreSM, cCWSL, gPostSM);
 
  // try to open shared memory
  Res = mCWSL.Open(Name);
@@ -465,13 +468,28 @@ void __declspec(dllexport) __stdcall SetCallback(PCallBack _PCB)
 
 ///////////////////////////////////////////////////////////////////////////////
 BOOL WINAPI DllMain(HINSTANCE hinst, unsigned long Command, void* lpReserved)
-{
+{char fileName[_MAX_PATH + 1];
+ char *pFN, *pc;
+
  // which command ?
  switch (Command)
  {
   case DLL_PROCESS_ATTACH:
    // save handle to this dll
    hInst = hinst;
+
+   // create the prefix and suffix for the shared memories names
+   strcpy(gPreSM, "CWSL");
+   strcpy(gPostSM, "Band");
+   ::GetModuleFileName(hinst, fileName, _MAX_PATH);
+   #define BASE_FNAME "Extio_CWSL"
+   pFN = strstr(fileName, BASE_FNAME);
+   if (pFN != NULL)
+   {pFN += strlen(BASE_FNAME);
+    for (pc = pFN; (*pc != '\0') && (*pc != '.'); pc++);
+    *pc = '\0';
+    strcat(gPostSM, pFN);
+   }
    break;
   
   case DLL_THREAD_ATTACH:    

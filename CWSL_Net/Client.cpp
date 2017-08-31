@@ -7,6 +7,9 @@
 #include <math.h>
 #include "Client.h"
 
+// Prefix and suffix for the shared memories names from main.cpp
+extern char gPreSM[], gPostSM[];
+
 ///////////////////////////////////////////////////////////////////////////////
 // Parse client command
 char *Client::ParseCommand(char *cmd)
@@ -57,7 +60,7 @@ char *Client::CmdAttach(char **arg)
  m_rx = atoi(arg[1]);
  
  // create name of the shared memory
- sprintf(ret, "CWSL%dBand", m_rx);
+ sprintf(ret, "%s%d%s", gPreSM, m_rx, gPostSM);
  
  // try to open it
  if (!m_SM.Open(ret)) return cs_cant_attach;
