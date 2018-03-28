@@ -54,6 +54,9 @@ CSharedMemory mCWSL;
 // Scale factor for scaling float to short
 int SF = 16;
 
+// Config file name
+char gCfgFileName[_MAX_PATH + 1];
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Utility function
@@ -132,6 +135,39 @@ BOOL CWSLOpen(void)
 void CWSLClose(void)
 {
  mCWSL.Close();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// Load configuration from file
+void LoadConfig(void)
+{FILE *fp;
+ char ln[_MAX_PATH];
+ int i;
+
+ // try to open config file
+ fp = fopen(gCfgFileName, "rt");
+ if (fp != NULL)
+ {// try to read first line (number of selected band)
+  if (fgets(ln, _MAX_PATH - 1, fp))
+  {// convert it into integer
+   i = atoi(ln);
+
+   // if this value is reasonable, assign it
+   if ((i > -1) && (i < nCWSL)) cCWSL = i;
+  }
+
+  // try to read second line (scale factor)
+  if (fgets(ln, _MAX_PATH - 1, fp))
+  {// convert it into integer
+   i = atoi(ln);
+
+   // if this value is reasonable, assign it
+   if ((i > -1) && (i < 25)) SF = i;
+  }
+
+  // close the file
+  fclose(fp);
+ }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -331,6 +367,9 @@ bool __declspec(dllexport) __stdcall InitHW(char *name, char *model, int& type)
   return(false);
  }
 
+ // load configuration
+ LoadConfig();
+
  // success
  return(true);
 }
@@ -489,6 +528,15 @@ BOOL WINAPI DllMain(HINSTANCE hinst, unsigned long Command, void* lpReserved)
     for (pc = pFN; (*pc != '\0') && (*pc != '.'); pc++);
     *pc = '\0';
     strcat(gPostSM, pFN);
+   }
+
+   // create the config file name
+   strcpy(gCfgFileName, fileName);
+   pFN = strstr(gCfgFileName, BASE_FNAME);
+   if (pFN == NULL) strcpy(gCfgFileName, "Extio_CWSL.cfg");
+    else
+   {pFN += strlen(BASE_FNAME);
+    strcpy(pFN, ".cfg");
    }
    break;
   
