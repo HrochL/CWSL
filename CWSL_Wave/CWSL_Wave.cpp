@@ -109,10 +109,10 @@ void main(int argc, char **argv)
  {fprintf(stderr, "Bad WaveOutdNr (%s)\n", argv[2]); return;}
 
  // have we user defined scale factor ?
- if (argc > 2)
+ if (argc > 3)
  {// yes -> try to parse it
-  if ((sscanf(argv[2], "%d", &SF) != 1) || (SF < 0) || (SF > 24))
-  {fprintf(stderr, "Bad Scale_factor (%s)\n", argv[2]); return;}
+  if ((sscanf(argv[3], "%d", &SF) != 1) || (SF < 0) || (SF > 24))
+  {fprintf(stderr, "Bad Scale_factor (%s)\n", argv[3]); return;}
  }
 
  // find right band
